@@ -1,0 +1,1988 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Patrimônio - Controle de Acesso (RBAC)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Ícones Phosphor -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Chart.js para gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- SheetJS para ler e gerar arquivos Excel (.xlsx) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans">
+
+  <!-- ======================================================== -->
+  <!-- 1. TELA DE LOGIN (Visível apenas se deslogado) -->
+  <!-- ======================================================== -->
+  <section id="telaLogin" class="fixed inset-0 z-50 bg-slate-900 flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-8 border border-slate-200">
+      
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+          <i class="ph ph-shield-check text-3xl"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-slate-900">Acesso ao Sistema</h2>
+        <p class="text-xs text-slate-500 mt-1">Gestão de Patrimônio — Dennis Oliveira</p>
+      </div>
+
+      <!-- Mensagem de Erro -->
+      <div id="erroLogin" class="hidden mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+        <i class="ph ph-warning-circle text-base"></i>
+        <span id="erroLoginTexto">Usuário ou senha incorretos.</span>
+      </div>
+
+      <!-- Formulário de Login -->
+      <form id="formLogin" onsubmit="realizarLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Usuário</label>
+          <div class="relative">
+            <i class="ph ph-user absolute left-3 top-2.5 text-slate-400"></i>
+            <input type="text" id="loginUsuario" required placeholder="Digite seu usuário..."
+              class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Senha</label>
+          <div class="relative">
+            <i class="ph ph-lock-key absolute left-3 top-2.5 text-slate-400"></i>
+            <input type="password" id="loginSenha" required placeholder="Digite sua senha..."
+              class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+        </div>
+
+        <button type="submit" 
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg text-sm transition shadow-md flex items-center justify-center gap-2">
+          <i class="ph ph-sign-in"></i> Entrar
+        </button>
+      </form>
+
+      <!-- QUADRO INFORMATIVO: PERFIS E PERMISSÕES (SEM SENHAS) -->
+      <div class="mt-6 pt-5 border-t border-slate-100 text-[11px] text-slate-500 space-y-2">
+        <p class="font-bold text-slate-700 flex items-center gap-1.5">
+          <i class="ph ph-info text-blue-500 text-sm"></i> Níveis de Acesso e Permissões:
+        </p>
+        
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200/70 space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-900 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-blue-600"></span> ADM
+            </span>
+            <span class="text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded text-[10px] border border-blue-200">Acesso Total</span>
+          </div>
+          <p class="text-[10px] text-slate-500 leading-relaxed pl-3.5">
+            Cadastra, edita, exclui em massa, importa/exporta planilhas, dashboards e gerencia usuários e senhas.
+          </p>
+        </div>
+
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200/70 space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-900 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-600"></span> USUÁRIO
+            </span>
+            <span class="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded text-[10px] border border-emerald-200">Só Visualização</span>
+          </div>
+          <p class="text-[10px] text-slate-500 leading-relaxed pl-3.5">
+            Consulta inventário, fotos dos ativos e relatórios analíticos por empresa.
+          </p>
+        </div>
+
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200/70 space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-900 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-amber-600"></span> LOJAS
+            </span>
+            <span class="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded text-[10px] border border-amber-200">Só Cadastro</span>
+          </div>
+          <p class="text-[10px] text-slate-500 leading-relaxed pl-3.5">
+            Acesso exclusivo ao formulário para cadastro de novos patrimônios, sem visualização do banco de dados.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ======================================================== -->
+  <!-- 2. SISTEMA PRINCIPAL (Visível apenas após login) -->
+  <!-- ======================================================== -->
+  <div id="sistemaPrincipal" class="hidden flex-col flex-1">
+
+    <!-- Topo -->
+    <header class="bg-slate-900 text-white shadow-lg border-b border-slate-800 sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        
+        <div class="flex items-center gap-3">
+          <div class="bg-blue-600 p-2.5 rounded-xl shadow-md">
+            <i class="ph ph-barcode text-2xl text-white"></i>
+          </div>
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold tracking-tight">Gestão de Patrimônio</h1>
+            <p class="text-xs text-slate-400">Responsável: <span class="text-slate-200 font-semibold">Dennis Oliveira</span></p>
+          </div>
+        </div>
+
+        <!-- Abas (Ocultas para LOJAS) -->
+        <nav id="navAbas" class="flex bg-slate-800/80 p-1 rounded-xl border border-slate-700">
+          <button id="btnAbaCadastros" onclick="mudarAba('cadastros')" 
+            class="flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-blue-600 text-white shadow transition">
+            <i class="ph ph-table"></i> Inventário
+          </button>
+          <button id="btnAbaDashboard" onclick="mudarAba('dashboard')" 
+            class="flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-300 hover:text-white transition">
+            <i class="ph ph-chart-pie-slice"></i> Dashboard & Empresas
+          </button>
+        </nav>
+
+        <!-- Ações & Perfil -->
+        <div class="flex items-center gap-2 flex-wrap">
+
+          <button id="btnGerenciarUsuarios" onclick="abrirModalUsuarios()" 
+            class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-2 px-3 rounded-lg flex items-center gap-1.5 transition shadow-sm" title="Cadastrar e gerenciar usuários e senhas">
+            <i class="ph ph-users-three text-base"></i> Usuários
+          </button>
+
+          <input type="file" id="inputImportar" accept=".xlsx, .xls, .json" class="hidden" onchange="processarArquivoImportacao(event)">
+          <button id="btnImportar" onclick="document.getElementById('inputImportar').click()" 
+            class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold py-2 px-3 rounded-lg flex items-center gap-1.5 transition">
+            <i class="ph ph-upload-simple text-base text-cyan-400"></i> Importar
+          </button>
+
+          <div class="relative inline-block" id="dropdownExportarWrap">
+            <button onclick="toggleDropdownExportar()" 
+              class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 px-3 rounded-lg flex items-center gap-1.5 transition shadow-sm">
+              <i class="ph ph-download-simple text-base"></i> Exportar <i class="ph ph-caret-down text-xs"></i>
+            </button>
+            <div id="dropdownExportar" class="hidden absolute right-0 mt-2 w-52 bg-white text-slate-800 rounded-lg shadow-xl border border-slate-200 py-1.5 z-50">
+              <button onclick="exportarXLSX(); toggleDropdownExportar()" class="w-full text-left px-4 py-2 text-xs hover:bg-emerald-50 text-emerald-900 font-semibold flex items-center gap-2">
+                <i class="ph ph-microsoft-excel-logo text-emerald-600 text-base"></i> Planilha Excel (.xlsx)
+              </button>
+              <button onclick="exportarCSV(); toggleDropdownExportar()" class="w-full text-left px-4 py-2 text-xs hover:bg-slate-100 flex items-center gap-2">
+                <i class="ph ph-file-csv text-slate-600 text-base"></i> Arquivo Texto (.csv)
+              </button>
+              <div class="border-t border-slate-100 my-1"></div>
+              <button onclick="exportarBackupJSON(); toggleDropdownExportar()" class="w-full text-left px-4 py-2 text-xs hover:bg-slate-100 flex items-center gap-2">
+                <i class="ph ph-file-code text-blue-600 text-base"></i> Backup Completo (.json)
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 pl-2 border-l border-slate-700">
+            <div class="text-right">
+              <p id="userBadgeNome" class="text-xs font-bold text-slate-200">Nome</p>
+              <span id="userBadgePerfil" class="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase">Perfil</span>
+            </div>
+            <button onclick="realizarLogout()" class="p-2 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition" title="Encerrar Sessão">
+              <i class="ph ph-sign-out text-lg"></i>
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </header>
+
+    <!-- Conteúdo Dinâmico -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
+
+      <!-- Indicadores Rápidos (Oculto para LOJAS) -->
+      <div id="cardsMetricas" class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+            <i class="ph ph-device-mobile-speaker"></i>
+          </div>
+          <div>
+            <p class="text-xs text-slate-500 font-medium uppercase">Total Ativos</p>
+            <p id="totalAtivos" class="text-xl font-bold text-slate-800">0</p>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+            <i class="ph ph-user-check"></i>
+          </div>
+          <div>
+            <p class="text-xs text-slate-500 font-medium uppercase">Em Uso</p>
+            <p id="totalEmUso" class="text-xl font-bold text-emerald-600">0</p>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl">
+            <i class="ph ph-package"></i>
+          </div>
+          <div>
+            <p class="text-xs text-slate-500 font-medium uppercase">Em Estoque</p>
+            <p id="totalEstoque" class="text-xl font-bold text-indigo-600">0</p>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+            <i class="ph ph-wrench"></i>
+          </div>
+          <div>
+            <p class="text-xs text-slate-500 font-medium uppercase">Manutenção/Defeito</p>
+            <p id="totalProblemas" class="text-xl font-bold text-amber-600">0</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= ABA 1: CADASTROS & TABELA ================= -->
+      <div id="abaCadastros" class="space-y-6">
+        
+        <!-- Formulário (Visível para ADM e LOJAS | Oculto para USUÁRIO) -->
+        <section id="secaoFormulario" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <div class="border-b border-slate-100 pb-3 mb-5 flex items-center justify-between">
+            <h2 id="formTitulo" class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <i class="ph ph-plus-circle text-blue-600 text-xl"></i> Novo Registro de Patrimônio
+            </h2>
+            <span class="text-xs text-slate-400">* Campos obrigatórios</span>
+          </div>
+
+          <form id="formPatrimonio" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <input type="hidden" id="registroId">
+            <input type="hidden" id="fotoBase64Atual">
+
+            <!-- Etiqueta do Ativo -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Etiqueta do Ativo *</label>
+              <input type="text" id="etiqueta" placeholder="Ex: PAT-01029 ou SEM TAG" required oninput="verificarEtiquetaEmTempoReal()"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              
+              <div id="alertaDuplicado" class="hidden mt-1 p-2 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-800 flex flex-col gap-1">
+                <div class="flex items-center gap-1 font-bold">
+                  <i class="ph ph-warning-circle text-amber-600"></i> Etiqueta já cadastrada!
+                </div>
+                <p>Ao salvar, os dados serão <strong class="underline">atualizados</strong>.</p>
+                <button type="button" id="btnCarregarExistente" onclick="carregarDadosExistentes()" class="text-left font-semibold text-blue-600 hover:underline">
+                  ↳ Carregar dados atuais no formulário
+                </button>
+              </div>
+            </div>
+
+            <!-- Ativo Nome -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Ativo Nome *</label>
+              <input type="text" id="nome" placeholder="Ex: Dell Inspiron 15" required
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <!-- Número de Série -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Número de Série *</label>
+              <input type="text" id="serie" placeholder="Ex: CN089F29012" required
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">
+            </div>
+
+            <!-- Categoria -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Categoria *</label>
+              <select id="categoria" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <option value="" disabled selected>Selecione...</option>
+                <option value="NOTEBOOK">NOTEBOOK</option>
+                <option value="MONITOR">MONITOR</option>
+                <option value="ALL IN ONE">ALL IN ONE</option>
+                <option value="THINKCENTER">THINKCENTER</option>
+                <option value="SMARTPHONE">SMARTPHONE</option>
+                <option value="NOBREAK">NOBREAK</option>
+                <option value="TABLET">TABLET</option>
+                <option value="HEADSET">HEADSET</option>
+                <option value="KIT TECLADO / MOUSE">KIT TECLADO / MOUSE</option>
+                <option value="IMPRESSORA 3D">IMPRESSORA 3D</option>
+                <option value="ACESSORIOS-OUTROS">ACESSORIOS-OUTROS</option>
+              </select>
+            </div>
+
+            <!-- Alocado para -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Alocado para *</label>
+              <input type="text" id="alocadoPara" placeholder="Nome do Colaborador" required
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <!-- Empresa -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Empresa *</label>
+              <select id="empresa" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <option value="" disabled selected>Selecione a empresa...</option>
+                <optgroup label="── 1. TRUETEC ──">
+                  <option value="TRUETEC-XXIII">TRUETEC-XXIII</option>
+                  <option value="TRUETEC BARÃO-MATRIZ">TRUETEC BARÃO-MATRIZ</option>
+                  <option value="TRUETEC-FORTALEZA">TRUETEC-FORTALEZA</option>
+                </optgroup>
+                <optgroup label="── 2. REDE RR ──">
+                  <option value="RR-BARÃO">RR-BARÃO</option>
+                  <option value="RR-CENTRO">RR-CENTRO</option>
+                  <option value="RR-JOÃO XXIII">RR-JOÃO XXIII</option>
+                  <option value="RR FORTALEZA BORGES MELO">RR FORTALEZA BORGES MELO</option>
+                  <option value="RR FORTALEZA PLANALTO">RR FORTALEZA PLANALTO</option>
+                  <option value="RR-FORTALEZA 1">RR-FORTALEZA 1</option>
+                  <option value="RR-FORTALEZA 2">RR-FORTALEZA 2</option>
+                  <option value="RR-SÃO LUÍS">RR-SÃO LUÍS</option>
+                  <option value="RR-TIMON">RR-TIMON</option>
+                </optgroup>
+                <optgroup label="── 3. CALLCENTER & OUTROS ──">
+                  <option value="CALLCENTER BARÃO">CALLCENTER BARÃO</option>
+                  <option value="CALLCENTER-JOÃO XXIII">CALLCENTER-JOÃO XXIII</option>
+                  <option value="HEYDEV-JOÃOXXIII">HEYDEV-JOÃOXXIII</option>
+                  <option value="MOZAK-JOÃOXXIII">MOZAK-JOÃOXXIII</option>
+                  <option value="MUNDOSAM">MUNDOSAM</option>
+                  <option value="STUDIO SABIA">STUDIO SABIA</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <!-- Local / Setor -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Local / Setor *</label>
+              <select id="local" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <option value="" disabled selected>Selecione o local/setor...</option>
+                <option value="CAIXA">CAIXA</option>
+                <option value="CALLCENTER">CALLCENTER</option>
+                <option value="DEV">DEV</option>
+                <option value="FINANCEIRO">FINANCEIRO</option>
+                <option value="GERENCIA">GERENCIA</option>
+                <option value="INFRAESTRUTURA">INFRAESTRUTURA</option>
+                <option value="IOT/CFTV">IOT/CFTV</option>
+                <option value="MKT">MKT</option>
+                <option value="OFICINA">OFICINA</option>
+                <option value="RECEPÇÃO">RECEPÇÃO</option>
+                <option value="RH">RH</option>
+                <option value="SERVICE DESK">SERVICE DESK</option>
+                <option value="SHOWROOM">SHOWROOM</option>
+                <option value="SUPERVISÃO">SUPERVISÃO</option>
+                <option value="TRUETEC">TRUETEC</option>
+                <option value="VENDAS">VENDAS</option>
+                <option value="OUTROS">OUTROS</option>
+              </select>
+            </div>
+
+            <!-- Status Operacional -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Status Operacional *</label>
+              <select id="statusOperacional" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <option value="" disabled selected>Selecione...</option>
+                <option value="EM USO">EM USO</option>
+                <option value="ESTOQUE">ESTOQUE</option>
+                <option value="DEFEITO">DEFEITO</option>
+                <option value="MANUTENÇÃO">MANUTENÇÃO</option>
+              </select>
+            </div>
+
+            <!-- Situação Física -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Situação Física / Conservação *</label>
+              <select id="situacao" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <option value="" disabled selected>Selecione...</option>
+                <option value="NOVO">NOVO</option>
+                <option value="RECONDICIONADO">RECONDICIONADO</option>
+                <option value="USADO BOM">USADO BOM</option>
+                <option value="USADO MARCAS">USADO MARCAS</option>
+                <option value="AVARIADO">AVARIADO</option>
+                <option value="MAL FUNCIONAMENTO">MAL FUNCIONAMENTO</option>
+              </select>
+            </div>
+
+            <!-- FOTO DA TAG DE PATRIMONIO -->
+            <div class="md:col-span-2 lg:col-span-2">
+              <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                <span>FOTO DA TAG DE PATRIMONIO *</span>
+                <span id="fotoStatus" class="text-[10px] text-slate-400 font-normal">Nenhum anexo</span>
+              </label>
+              <div class="flex items-center gap-3">
+                <label class="flex-1 cursor-pointer bg-slate-50 hover:bg-slate-100 border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-lg p-2.5 flex items-center justify-center gap-2 transition">
+                  <i class="ph ph-camera text-xl text-blue-600"></i>
+                  <span class="text-xs text-slate-600 font-medium">Selecionar ou Tirar Foto</span>
+                  <input type="file" id="fotoTag" accept="image/*" class="hidden" onchange="processarFotoInput(event)">
+                </label>
+                <div id="previewContainer" class="hidden relative w-12 h-12 rounded-lg border border-slate-300 overflow-hidden flex-shrink-0 bg-slate-100">
+                  <img id="imgPreview" src="" class="w-full h-full object-cover">
+                  <button type="button" onclick="removerFoto()" class="absolute top-0 right-0 bg-rose-600 text-white rounded-bl p-0.5" title="Remover foto">
+                    <i class="ph ph-x text-xs"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Botões de Ação do Formulário -->
+            <div class="md:col-span-1 lg:col-span-1 flex items-end gap-2">
+              <button type="submit" id="btnSalvar" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg text-sm transition shadow-sm">
+                Gravar Registro
+              </button>
+              <button type="button" id="btnCancelar" onclick="resetarFormulario()" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2.5 px-3 rounded-lg text-sm transition">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Tabela Geral (Visível para ADM e USUÁRIO | Oculta para LOJAS) -->
+        <section id="secaoTabelaGeral" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          
+          <!-- BARRA DE AÇÃO EM MASSA (EXCLUSIVA ADMIN) -->
+          <div id="barraAcaoEmMassa" class="hidden bg-rose-50 border-b border-rose-200 px-4 py-3 flex flex-wrap items-center justify-between gap-3 transition-all">
+            <div class="flex items-center gap-2 text-rose-800 text-xs sm:text-sm font-semibold">
+              <i class="ph ph-check-square-offset text-lg text-rose-600"></i>
+              <span id="textoQtdSelecionados">0 itens selecionados</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="desmarcarTodos()" class="text-xs text-slate-500 hover:text-slate-700 font-medium px-2 py-1">
+                Cancelar Seleção
+              </button>
+              <button onclick="excluirEmMassa()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-1.5 px-4 rounded-lg flex items-center gap-1.5 shadow transition">
+                <i class="ph ph-trash text-sm"></i> Excluir Selecionados
+              </button>
+            </div>
+          </div>
+
+          <!-- Filtro e Busca -->
+          <div class="p-4 border-b border-slate-200 flex flex-col md:flex-row gap-3 justify-between items-center bg-slate-50/50">
+            <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+              <i class="ph ph-list-dashes text-blue-600"></i> Base Geral de Patrimônio
+            </h3>
+            
+            <div class="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+              <select id="filtroEmpresa" onchange="filtrar()" class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none">
+                <option value="">Todas as Empresas</option>
+                <optgroup label="── 1. TRUETEC ──">
+                  <option value="TRUETEC-XXIII">TRUETEC-XXIII</option>
+                  <option value="TRUETEC BARÃO-MATRIZ">TRUETEC BARÃO-MATRIZ</option>
+                  <option value="TRUETEC-FORTALEZA">TRUETEC-FORTALEZA</option>
+                </optgroup>
+                <optgroup label="── 2. REDE RR ──">
+                  <option value="RR-BARÃO">RR-BARÃO</option>
+                  <option value="RR-CENTRO">RR-CENTRO</option>
+                  <option value="RR-JOÃO XXIII">RR-JOÃO XXIII</option>
+                  <option value="RR FORTALEZA BORGES MELO">RR FORTALEZA BORGES MELO</option>
+                  <option value="RR FORTALEZA PLANALTO">RR FORTALEZA PLANALTO</option>
+                  <option value="RR-FORTALEZA 1">RR-FORTALEZA 1</option>
+                  <option value="RR-FORTALEZA 2">RR-FORTALEZA 2</option>
+                  <option value="RR-SÃO LUÍS">RR-SÃO LUÍS</option>
+                  <option value="RR-TIMON">RR-TIMON</option>
+                </optgroup>
+                <optgroup label="── 3. CALLCENTER & OUTROS ──">
+                  <option value="CALLCENTER BARÃO">CALLCENTER BARÃO</option>
+                  <option value="CALLCENTER-JOÃO XXIII">CALLCENTER-JOÃO XXIII</option>
+                  <option value="HEYDEV-JOÃOXXIII">HEYDEV-JOÃOXXIII</option>
+                  <option value="MOZAK-JOÃOXXIII">MOZAK-JOÃOXXIII</option>
+                  <option value="MUNDOSAM">MUNDOSAM</option>
+                  <option value="STUDIO SABIA">STUDIO SABIA</option>
+                </optgroup>
+              </select>
+
+              <div class="relative w-full sm:w-64">
+                <i class="ph ph-magnifying-glass absolute left-3 top-2.5 text-slate-400"></i>
+                <input type="text" id="campoBusca" oninput="filtrar()" placeholder="Buscar etiqueta, série, nome, setor..."
+                  class="w-full pl-9 pr-3 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabela -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[1050px]">
+              <thead>
+                <tr class="bg-slate-100/75 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th id="thCheckTodos" class="py-3 px-2 text-center w-8">
+                    <input type="checkbox" id="checkTodos" onchange="alternarSelecionarTodos(this)" 
+                      class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer" title="Selecionar Todos">
+                  </th>
+                  <th class="py-3 px-2 text-center w-12">Foto</th>
+                  <th class="py-3 px-2 w-24">Etiqueta</th>
+                  <th class="py-3 px-2">Ativo</th>
+                  <th class="py-3 px-2 text-center w-28">Nº Série</th>
+                  <th class="py-3 px-2">Categoria</th>
+                  <th class="py-3 px-2">Alocado Para</th>
+                  <th class="py-3 px-2">Empresa / Setor</th>
+                  <th class="py-3 px-2 text-center w-24">Status</th>
+                  <th class="py-3 px-2 text-center w-24">Situação</th>
+                  <th class="py-3 px-2 text-center w-24">Cad. Por</th>
+                  <th class="py-3 px-2 text-right w-16">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaCorpo" class="divide-y divide-slate-100 text-xs sm:text-sm">
+                <!-- JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <div id="estadoVazio" class="hidden p-10 text-center text-slate-400">
+            <i class="ph ph-tray text-4xl mb-2 text-slate-300 block"></i>
+            <p class="font-medium">Nenhum registro encontrado no cadastro.</p>
+          </div>
+        </section>
+      </div>
+
+      <!-- ================= ABA 2: DASHBOARD ANALÍTICO (Oculto para LOJAS) ================= -->
+      <div id="abaDashboard" class="hidden space-y-6">
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          <!-- 1. CAIXA: QUANTIDADE DE CADA EQUIPAMENTO -->
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+            <div class="flex items-center justify-between mb-3 w-full border-b border-slate-100 pb-2">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                <i class="ph ph-stack text-blue-600 text-base"></i> Quantidade por Equipamento
+              </h4>
+              <span id="badgeTotalEquipamentosCard" class="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200">
+                0 itens
+              </span>
+            </div>
+
+            <div class="w-full h-52 overflow-y-auto pr-1 space-y-2.5" id="listaQtdEquipamentos">
+              <!-- Preenchido via JavaScript -->
+            </div>
+          </div>
+
+          <!-- 2. Por Categoria (Gráfico) -->
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5 w-full">
+              <i class="ph ph-devices text-indigo-600 text-base"></i> Por Categoria
+            </h4>
+            <div class="w-full h-52 relative flex items-center justify-center">
+              <canvas id="chartCategoria"></canvas>
+            </div>
+          </div>
+
+          <!-- 3. Por Empresa (Gráfico) -->
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5 w-full">
+              <i class="ph ph-buildings text-emerald-600 text-base"></i> Por Empresa
+            </h4>
+            <div class="w-full h-52 relative flex items-center justify-center">
+              <canvas id="chartEmpresa"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- LISTAGEM AGRUPADA POR EMPRESA (INICIA RECOLHIDA) -->
+        <section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <i class="ph ph-buildings text-blue-600 text-xl"></i>
+                Equipamentos por Empresa
+              </h3>
+              <p class="text-xs text-slate-400">Distribuição detalhada de cada ativo agrupado por Empresa</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="expandirTodasEmpresas(true)" class="text-xs text-blue-600 hover:underline font-semibold">Expandir Todas</button>
+              <span class="text-slate-300">|</span>
+              <button onclick="expandirTodasEmpresas(false)" class="text-xs text-blue-600 hover:underline font-semibold">Recolher Todas</button>
+            </div>
+          </div>
+
+          <div id="containerEmpresas" class="space-y-3">
+            <!-- JS -->
+          </div>
+
+          <div id="estadoVazioEmpresas" class="hidden text-center py-10 text-slate-400">
+            <p>Nenhum dado cadastrado para listar empresas.</p>
+          </div>
+        </section>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: GERENCIAMENTO DE USUÁRIOS (COM EDIÇÃO DE SENHAS) -->
+  <!-- ======================================================== -->
+  <div id="modalUsuarios" class="hidden fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
+      
+      <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <h4 class="font-bold text-slate-900 text-base flex items-center gap-2">
+          <i class="ph ph-users-three text-indigo-600 text-xl"></i> Gerenciador de Usuários e Senhas
+        </h4>
+        <button onclick="fecharModalUsuarios()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="ph ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-6">
+        
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <div class="flex items-center justify-between mb-3">
+            <h5 id="formNovoUsuarioTitulo" class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+              <i class="ph ph-user-plus text-indigo-600"></i> Cadastrar Novo Usuário
+            </h5>
+            <span id="avisoModoEdicao" class="hidden text-[11px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded font-semibold border border-amber-200">
+              Modo de Edição Ativo
+            </span>
+          </div>
+
+          <form id="formNovoUsuario" onsubmit="salvarNovoUsuario(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <input type="hidden" id="editUsuarioIndex" value="">
+
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">Nome Completo *</label>
+              <input type="text" id="novoNome" placeholder="Ex: Filial Centro" required
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">Login / Usuário *</label>
+              <input type="text" id="novoUsuario" placeholder="Ex: loja_centro" required
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">Senha * <span class="text-indigo-600 font-normal">(Nova ou Atual)</span></label>
+              <input type="text" id="novaSenha" placeholder="Digite a senha..." required
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">Nível de Acesso (Perfil) *</label>
+              <select id="novoPerfil" required class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <option value="lojas">3. LOJAS (Apenas Cadastro / Sem visualização)</option>
+                <option value="usuario">2. USUÁRIO (Apenas Visualização)</option>
+                <option value="admin">1. ADM (Administrador - Acesso Total)</option>
+              </select>
+            </div>
+
+            <div class="sm:col-span-2 pt-2 flex items-center gap-2">
+              <button type="submit" id="btnSalvarUsuario" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition shadow-sm flex items-center justify-center gap-1.5">
+                <i class="ph ph-check"></i> Cadastrar Usuário
+              </button>
+              <button type="button" id="btnCancelarEditUsuario" onclick="cancelarEdicaoUsuario()" class="hidden px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-semibold transition">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h5 class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+              <i class="ph ph-address-book text-slate-500"></i> Usuários Cadastrados
+            </h5>
+            <span class="text-[10px] text-slate-400">Clique na <strong>Chave 🔑</strong> para alterar senha rapidamente</span>
+          </div>
+
+          <div class="overflow-x-auto border border-slate-200 rounded-xl">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-100 text-slate-600 font-semibold uppercase">
+                <tr>
+                  <th class="py-2.5 px-3">Nome</th>
+                  <th class="py-2.5 px-3">Usuário</th>
+                  <th class="py-2.5 px-3">Senha</th>
+                  <th class="py-2.5 px-3">Perfil</th>
+                  <th class="py-2.5 px-3 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaUsuariosCorpo" class="divide-y divide-slate-100">
+                <!-- JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="p-3 bg-slate-100 border-t border-slate-200 text-right">
+        <button onclick="fecharModalUsuarios()" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-lg">
+          Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE VISUALIZAÇÃO DE FOTO -->
+  <div id="modalFoto" class="hidden fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl">
+      <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+        <h4 id="modalFotoTitulo" class="font-bold text-slate-800 text-sm flex items-center gap-2">
+          <i class="ph ph-image text-blue-600"></i> FOTO DA TAG DE PATRIMONIO
+        </h4>
+        <button onclick="fecharModalFoto()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="ph ph-x text-lg"></i>
+        </button>
+      </div>
+      <div class="p-4 flex items-center justify-center bg-slate-50 min-h-[300px] max-h-[75vh] overflow-auto">
+        <img id="modalFotoImg" src="" class="max-w-full max-h-[70vh] rounded-lg shadow object-contain">
+      </div>
+      <div class="p-3 bg-slate-100 text-right">
+        <button onclick="fecharModalFoto()" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-lg">
+          Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========================================================
+    // USUÁRIOS ATIVOS NO SISTEMA (SEM 'TRUE')
+    // ========================================================
+    const USUARIOS_INICIAIS = [
+      { usuario: 'ADM', senha: 'ADM', nome: 'Administrador ADM', perfil: 'admin' },
+      { usuario: 'usuario', senha: '123', nome: 'Consulta Geral', perfil: 'usuario' },
+      { usuario: 'loja', senha: 'loja', nome: 'Operação Loja', perfil: 'lojas' }
+    ];
+
+    // Carrega do LocalStorage e remove 'true' se estiver salvo anteriormente
+    let usuariosSistema = (JSON.parse(localStorage.getItem('usuarios_db')) || USUARIOS_INICIAIS)
+      .filter(u => u.usuario.toLowerCase() !== 'true');
+    localStorage.setItem('usuarios_db', JSON.stringify(usuariosSistema));
+
+    let usuarioLogado = JSON.parse(sessionStorage.getItem('usuarioLogado')) || null;
+    if (usuarioLogado && usuarioLogado.usuario.toLowerCase() === 'true') {
+      usuarioLogado = null;
+      sessionStorage.removeItem('usuarioLogado');
+    }
+
+    let registros = (JSON.parse(localStorage.getItem('patrimonio_db')) || []).map(item => ({
+      ...item,
+      statusOperacional: item.statusOperacional || item.garantia || 'EM USO',
+      fotoTag: item.fotoTag || '',
+      cadastradoPor: item.cadastradoPor || 'ADM'
+    }));
+
+    let idsSelecionados = new Set();
+    let listaVisivelAtual = [];
+
+    const form = document.getElementById('formPatrimonio');
+    const tabelaCorpo = document.getElementById('tabelaCorpo');
+    const estadoVazio = document.getElementById('estadoVazio');
+
+    let chartCategoriaInst = null;
+    let chartEmpresaInst = null;
+
+    verificarEstadoAutenticacao();
+
+    function salvarUsuariosLocalStorage() {
+      localStorage.setItem('usuarios_db', JSON.stringify(usuariosSistema));
+    }
+
+    // ----------------------------------------------------
+    // AUTENTICAÇÃO E SESSÃO
+    // ----------------------------------------------------
+    function verificarEstadoAutenticacao() {
+      const telaLogin = document.getElementById('telaLogin');
+      const sistemaPrincipal = document.getElementById('sistemaPrincipal');
+
+      if (!usuarioLogado) {
+        telaLogin.classList.remove('hidden');
+        sistemaPrincipal.classList.add('hidden');
+      } else {
+        telaLogin.classList.add('hidden');
+        sistemaPrincipal.classList.remove('hidden');
+        sistemaPrincipal.classList.add('flex');
+
+        document.getElementById('userBadgeNome').textContent = usuarioLogado.nome;
+        const badgePerfil = document.getElementById('userBadgePerfil');
+
+        if (usuarioLogado.perfil === 'admin') {
+          badgePerfil.textContent = '1. ADM';
+          badgePerfil.className = "inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-900 text-blue-300 uppercase";
+        } else if (usuarioLogado.perfil === 'usuario') {
+          badgePerfil.textContent = '2. USUÁRIO';
+          badgePerfil.className = "inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-900 text-emerald-300 uppercase";
+        } else if (usuarioLogado.perfil === 'lojas') {
+          badgePerfil.textContent = '3. LOJAS';
+          badgePerfil.className = "inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-900 text-amber-300 uppercase";
+        }
+
+        aplicarPermissoesInterface();
+        filtrar();
+        atualizarTotais();
+      }
+    }
+
+    function realizarLogin(event) {
+      event.preventDefault();
+      const user = document.getElementById('loginUsuario').value.trim();
+      const pass = document.getElementById('loginSenha').value.trim();
+      const erroDiv = document.getElementById('erroLogin');
+
+      const usuarioEncontrado = usuariosSistema.find(u => 
+        u.usuario.toLowerCase() === user.toLowerCase() && u.senha === pass
+      );
+
+      if (usuarioEncontrado) {
+        erroDiv.classList.add('hidden');
+        usuarioLogado = {
+          usuario: usuarioEncontrado.usuario,
+          nome: usuarioEncontrado.nome,
+          perfil: usuarioEncontrado.perfil
+        };
+        sessionStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
+        document.getElementById('formLogin').reset();
+        verificarEstadoAutenticacao();
+      } else {
+        erroDiv.classList.remove('hidden');
+        document.getElementById('erroLoginTexto').textContent = "Usuário ou senha incorretos!";
+      }
+    }
+
+    function realizarLogout() {
+      if (confirm('Deseja realmente sair do sistema?')) {
+        usuarioLogado = null;
+        sessionStorage.removeItem('usuarioLogado');
+        idsSelecionados.clear();
+        verificarEstadoAutenticacao();
+      }
+    }
+
+    // ----------------------------------------------------
+    // RBAC: CONTROLE DOS 3 NÍVEIS DE ACESSO
+    // ----------------------------------------------------
+    function aplicarPermissoesInterface() {
+      if (!usuarioLogado) return;
+
+      const perfil = usuarioLogado.perfil;
+      const ehAdmin = (perfil === 'admin');
+      const ehUsuario = (perfil === 'usuario');
+      const ehLojas = (perfil === 'lojas');
+
+      document.getElementById('btnGerenciarUsuarios').classList.toggle('hidden', !ehAdmin);
+      document.getElementById('btnImportar').classList.toggle('hidden', !ehAdmin);
+      document.getElementById('dropdownExportarWrap').classList.toggle('hidden', !ehAdmin);
+      document.getElementById('thCheckTodos').classList.toggle('hidden', !ehAdmin);
+
+      // LOJAS: SÓ CADASTRA
+      if (ehLojas) {
+        document.getElementById('navAbas').classList.add('hidden');
+        document.getElementById('cardsMetricas').classList.add('hidden');
+        document.getElementById('secaoFormulario').classList.remove('hidden');
+        document.getElementById('secaoTabelaGeral').classList.add('hidden');
+        document.getElementById('btnCarregarExistente').classList.add('hidden');
+        mudarAba('cadastros');
+      } 
+      // USUÁRIO: SÓ VISUALIZA
+      else if (ehUsuario) {
+        document.getElementById('navAbas').classList.remove('hidden');
+        document.getElementById('cardsMetricas').classList.remove('hidden');
+        document.getElementById('secaoFormulario').classList.add('hidden');
+        document.getElementById('secaoTabelaGeral').classList.remove('hidden');
+      } 
+      // ADM: ACESSO TOTAL
+      else if (ehAdmin) {
+        document.getElementById('navAbas').classList.remove('hidden');
+        document.getElementById('cardsMetricas').classList.remove('hidden');
+        document.getElementById('secaoFormulario').classList.remove('hidden');
+        document.getElementById('secaoTabelaGeral').classList.remove('hidden');
+        document.getElementById('btnCarregarExistente').classList.remove('hidden');
+      }
+
+      atualizarBarraMassa();
+    }
+
+    // ----------------------------------------------------
+    // EXCLUSÃO EM MASSA (EXCLUSIVA ADM)
+    // ----------------------------------------------------
+    function alternarSelecaoItem(id, isChecked) {
+      if (isChecked) idsSelecionados.add(id);
+      else idsSelecionados.delete(id);
+      atualizarBarraMassa();
+      sincronizarCheckTodos();
+    }
+
+    function alternarSelecionarTodos(masterCheckbox) {
+      const checked = masterCheckbox.checked;
+      listaVisivelAtual.forEach(item => {
+        if (checked) idsSelecionados.add(item.id);
+        else idsSelecionados.delete(item.id);
+      });
+
+      const checkboxes = document.querySelectorAll('.checkItem');
+      checkboxes.forEach(cb => cb.checked = checked);
+      atualizarBarraMassa();
+    }
+
+    function desmarcarTodos() {
+      idsSelecionados.clear();
+      const checkboxes = document.querySelectorAll('.checkItem');
+      checkboxes.forEach(cb => cb.checked = false);
+      const checkTodos = document.getElementById('checkTodos');
+      if (checkTodos) checkTodos.checked = false;
+      atualizarBarraMassa();
+    }
+
+    function sincronizarCheckTodos() {
+      const checkTodos = document.getElementById('checkTodos');
+      if (!checkTodos || listaVisivelAtual.length === 0) return;
+      checkTodos.checked = listaVisivelAtual.every(item => idsSelecionados.has(item.id));
+    }
+
+    function atualizarBarraMassa() {
+      const ehAdmin = usuarioLogado && usuarioLogado.perfil === 'admin';
+      const barra = document.getElementById('barraAcaoEmMassa');
+      const texto = document.getElementById('textoQtdSelecionados');
+
+      if (ehAdmin && idsSelecionados.size > 0) {
+        barra.classList.remove('hidden');
+        texto.textContent = `${idsSelecionados.size} equipamento(s) selecionado(s)`;
+      } else {
+        barra.classList.add('hidden');
+      }
+    }
+
+    function excluirEmMassa() {
+      if (!usuarioLogado || usuarioLogado.perfil !== 'admin') {
+        alert('Acesso negado: apenas Administradores podem excluir itens.');
+        return;
+      }
+
+      const total = idsSelecionados.size;
+      if (total === 0) return;
+
+      if (!confirm(`Deseja realmente excluir permanentemente os ${total} equipamentos selecionados?`)) return;
+
+      registros = registros.filter(r => !idsSelecionados.has(r.id));
+      idsSelecionados.clear();
+
+      salvarLocalStorage();
+      filtrar();
+      atualizarTotais();
+      atualizarDashboard();
+      atualizarBarraMassa();
+      alert(`Sucesso: ${total} equipamento(s) excluído(s) com sucesso!`);
+    }
+
+    // ----------------------------------------------------
+    // GERENCIADOR DE USUÁRIOS (COM EDIÇÃO DE SENHAS)
+    // ----------------------------------------------------
+    function abrirModalUsuarios() {
+      if (!usuarioLogado || usuarioLogado.perfil !== 'admin') return;
+      cancelarEdicaoUsuario();
+      renderizarTabelaUsuarios();
+      document.getElementById('modalUsuarios').classList.remove('hidden');
+    }
+
+    function fecharModalUsuarios() {
+      document.getElementById('modalUsuarios').classList.add('hidden');
+      cancelarEdicaoUsuario();
+    }
+
+    function renderizarTabelaUsuarios() {
+      const corpo = document.getElementById('tabelaUsuariosCorpo');
+      corpo.innerHTML = '';
+
+      usuariosSistema.forEach((u, index) => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50";
+        const ehProprioUsuario = usuarioLogado && usuarioLogado.usuario.toLowerCase() === u.usuario.toLowerCase();
+
+        let badgeCor = 'bg-blue-100 text-blue-800';
+        let badgeRotulo = 'ADM';
+        if (u.perfil === 'usuario') {
+          badgeCor = 'bg-emerald-100 text-emerald-800';
+          badgeRotulo = 'USUÁRIO';
+        } else if (u.perfil === 'lojas') {
+          badgeCor = 'bg-amber-100 text-amber-800';
+          badgeRotulo = 'LOJAS';
+        }
+
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-semibold text-slate-800">${u.nome}</td>
+          <td class="py-2.5 px-3 font-mono text-slate-600">${u.usuario}</td>
+          <td class="py-2.5 px-3 font-mono text-slate-700 bg-slate-50 font-bold">${u.senha}</td>
+          <td class="py-2.5 px-3">
+            <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold ${badgeCor}">
+              ${badgeRotulo}
+            </span>
+          </td>
+          <td class="py-2.5 px-3 text-right space-x-1 whitespace-nowrap">
+            <button onclick="alterarSenhaRapida(${index})" class="text-amber-600 hover:text-amber-800 p-1.5 rounded hover:bg-amber-50" title="Alterar Senha Diretamente">
+              <i class="ph ph-key text-base"></i>
+            </button>
+            <button onclick="iniciarEdicaoUsuario(${index})" class="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-50" title="Editar Usuário e Senha no Formulário">
+              <i class="ph ph-pencil-simple text-base"></i>
+            </button>
+            ${ehProprioUsuario ? `
+              <span class="text-[10px] text-slate-400 italic px-1">Sessão</span>
+            ` : `
+              <button onclick="excluirUsuario(${index})" class="text-rose-600 hover:text-rose-800 p-1.5 rounded hover:bg-rose-50" title="Excluir Usuário">
+                <i class="ph ph-trash text-base"></i>
+              </button>
+            `}
+          </td>
+        `;
+        corpo.appendChild(tr);
+      });
+    }
+
+    function alterarSenhaRapida(index) {
+      const u = usuariosSistema[index];
+      const novaSenha = prompt(`Digite a NOVA SENHA para o usuário "${u.usuario}" (${u.nome}):`, u.senha);
+      
+      if (novaSenha !== null) {
+        const senhaLimpa = novaSenha.trim();
+        if (!senhaLimpa) {
+          alert('Erro: A senha não pode ficar em branco!');
+          return;
+        }
+
+        usuariosSistema[index].senha = senhaLimpa;
+        salvarUsuariosLocalStorage();
+        renderizarTabelaUsuarios();
+        alert(`Sucesso: A senha do usuário "${u.usuario}" foi alterada para "${senhaLimpa}".`);
+      }
+    }
+
+    function iniciarEdicaoUsuario(index) {
+      const u = usuariosSistema[index];
+      document.getElementById('editUsuarioIndex').value = index;
+      document.getElementById('novoNome').value = u.nome;
+      document.getElementById('novoUsuario').value = u.usuario;
+      document.getElementById('novaSenha').value = u.senha;
+      document.getElementById('novoPerfil').value = u.perfil;
+
+      document.getElementById('formNovoUsuarioTitulo').innerHTML = `<i class="ph ph-pencil text-amber-600"></i> Editando Usuário [${u.usuario}]`;
+      document.getElementById('avisoModoEdicao').classList.remove('hidden');
+      document.getElementById('btnSalvarUsuario').innerHTML = `<i class="ph ph-check"></i> Salvar Alterações de Senha / Dados`;
+      document.getElementById('btnSalvarUsuario').className = "flex-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded-lg transition shadow-sm flex items-center justify-center gap-1.5";
+      document.getElementById('btnCancelarEditUsuario').classList.remove('hidden');
+
+      document.getElementById('novaSenha').focus();
+    }
+
+    function cancelarEdicaoUsuario() {
+      document.getElementById('formNovoUsuario').reset();
+      document.getElementById('editUsuarioIndex').value = '';
+      document.getElementById('formNovoUsuarioTitulo').innerHTML = `<i class="ph ph-user-plus text-indigo-600"></i> Cadastrar Novo Usuário`;
+      document.getElementById('avisoModoEdicao').classList.add('hidden');
+      document.getElementById('btnSalvarUsuario').innerHTML = `<i class="ph ph-check"></i> Cadastrar Usuário`;
+      document.getElementById('btnSalvarUsuario').className = "flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition shadow-sm flex items-center justify-center gap-1.5";
+      document.getElementById('btnCancelarEditUsuario').classList.add('hidden');
+    }
+
+    function salvarNovoUsuario(e) {
+      e.preventDefault();
+      const indexEdicao = document.getElementById('editUsuarioIndex').value;
+      const nome = document.getElementById('novoNome').value.trim();
+      const user = document.getElementById('novoUsuario').value.trim();
+      const senha = document.getElementById('novaSenha').value.trim();
+      const perfil = document.getElementById('novoPerfil').value;
+
+      if (!senha) {
+        alert('A senha é obrigatória!');
+        return;
+      }
+
+      if (indexEdicao !== '') {
+        const idx = Number(indexEdicao);
+        const conflito = usuariosSistema.some((u, i) => i !== idx && u.usuario.toLowerCase() === user.toLowerCase());
+        if (conflito) {
+          alert(`O login "${user}" já está sendo usado por outro usuário!`);
+          return;
+        }
+
+        usuariosSistema[idx] = { usuario: user, senha, nome, perfil };
+        salvarUsuariosLocalStorage();
+        renderizarTabelaUsuarios();
+        cancelarEdicaoUsuario();
+        alert(`Dados e senha do usuário "${user}" atualizados com sucesso!`);
+      } else {
+        if (usuariosSistema.some(u => u.usuario.toLowerCase() === user.toLowerCase())) {
+          alert(`O usuário "${user}" já existe! Escolha outro nome.`);
+          return;
+        }
+
+        usuariosSistema.push({ usuario: user, senha, nome, perfil });
+        salvarUsuariosLocalStorage();
+        renderizarTabelaUsuarios();
+        document.getElementById('formNovoUsuario').reset();
+        alert(`Usuário "${user}" cadastrado com sucesso!`);
+      }
+    }
+
+    function excluirUsuario(index) {
+      const u = usuariosSistema[index];
+      if (confirm(`Deseja excluir o usuário "${u.usuario}"?`)) {
+        usuariosSistema.splice(index, 1);
+        salvarUsuariosLocalStorage();
+        renderizarTabelaUsuarios();
+      }
+    }
+
+    // ----------------------------------------------------
+    // VERIFICAÇÃO DE ETIQUETA REPETIDA
+    // ----------------------------------------------------
+    let itemEncontradoRepetido = null;
+
+    function verificarEtiquetaEmTempoReal() {
+      const valor = document.getElementById('etiqueta').value.trim().toUpperCase();
+      const idAtual = document.getElementById('registroId').value ? Number(document.getElementById('registroId').value) : null;
+      const alerta = document.getElementById('alertaDuplicado');
+      const btnSalvar = document.getElementById('btnSalvar');
+
+      if (!valor || valor === 'SEM TAG') {
+        alerta.classList.add('hidden');
+        itemEncontradoRepetido = null;
+        if (!idAtual) btnSalvar.textContent = 'Gravar Registro';
+        return;
+      }
+
+      const existente = registros.find(r => r.etiqueta.toUpperCase() === valor && r.id !== idAtual);
+
+      if (existente) {
+        itemEncontradoRepetido = existente;
+        alerta.classList.remove('hidden');
+        btnSalvar.textContent = 'Atualizar Patrimônio ' + existente.etiqueta;
+        btnSalvar.className = "flex-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 px-4 rounded-lg text-sm transition shadow-sm";
+      } else {
+        itemEncontradoRepetido = null;
+        alerta.classList.add('hidden');
+        if (!idAtual) {
+          btnSalvar.textContent = 'Gravar Registro';
+          btnSalvar.className = "flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg text-sm transition shadow-sm";
+        }
+      }
+    }
+
+    function carregarDadosExistentes() {
+      if (!itemEncontradoRepetido || usuarioLogado.perfil === 'lojas') return;
+      editarRegistro(itemEncontradoRepetido.id);
+      document.getElementById('alertaDuplicado').classList.add('hidden');
+    }
+
+    // ----------------------------------------------------
+    // COMPRESSÃO E ANEXO DE FOTO
+    // ----------------------------------------------------
+    function processarFotoInput(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 800;
+
+          if (width > height && width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const base64Comprimida = canvas.toDataURL('image/jpeg', 0.75);
+          definirFotoAtual(base64Comprimida);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function definirFotoAtual(base64) {
+      document.getElementById('fotoBase64Atual').value = base64;
+      document.getElementById('imgPreview').src = base64;
+      document.getElementById('previewContainer').classList.remove('hidden');
+      document.getElementById('fotoStatus').textContent = "Foto anexada ✓";
+      document.getElementById('fotoStatus').className = "text-[10px] text-emerald-600 font-semibold";
+    }
+
+    function removerFoto() {
+      document.getElementById('fotoTag').value = '';
+      document.getElementById('fotoBase64Atual').value = '';
+      document.getElementById('imgPreview').src = '';
+      document.getElementById('previewContainer').classList.add('hidden');
+      document.getElementById('fotoStatus').textContent = "Nenhum anexo";
+      document.getElementById('fotoStatus').className = "text-[10px] text-slate-400 font-normal";
+    }
+
+    function abrirModalFoto(etiqueta, fotoBase64) {
+      if (!fotoBase64) return alert("Nenhuma foto disponível para este equipamento.");
+      document.getElementById('modalFotoTitulo').innerHTML = `<i class="ph ph-image text-blue-600"></i> FOTO DA TAG - [${etiqueta}]`;
+      document.getElementById('modalFotoImg').src = fotoBase64;
+      document.getElementById('modalFoto').classList.remove('hidden');
+    }
+
+    function fecharModalFoto() {
+      document.getElementById('modalFoto').classList.add('hidden');
+    }
+
+    // ----------------------------------------------------
+    // SALVAR / ATUALIZAR REGISTROS
+    // ----------------------------------------------------
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      if (usuarioLogado && usuarioLogado.perfil === 'usuario') {
+        alert('Acesso negado: Perfil USUÁRIO tem permissão apenas para visualização.');
+        return;
+      }
+
+      const id = document.getElementById('registroId').value;
+      const etiquetaDigitada = document.getElementById('etiqueta').value.trim().toUpperCase() || 'SEM TAG';
+      let fotoBase64 = document.getElementById('fotoBase64Atual').value;
+
+      let idFinal = id ? Number(id) : null;
+      let usuarioOriginal = usuarioLogado ? usuarioLogado.usuario : 'ADM';
+
+      if (!idFinal && etiquetaDigitada !== 'SEM TAG') {
+        const itemExistente = registros.find(r => r.etiqueta.toUpperCase() === etiquetaDigitada);
+        if (itemExistente) {
+          if (!confirm(`A etiqueta "${etiquetaDigitada}" já existe no sistema!\nDeseja ATUALIZAR os dados deste patrimônio?`)) return;
+          idFinal = itemExistente.id;
+          if (!fotoBase64 && itemExistente.fotoTag) fotoBase64 = itemExistente.fotoTag;
+          usuarioOriginal = itemExistente.cadastradoPor || usuarioOriginal;
+        }
+      } else if (idFinal) {
+        const itemExistente = registros.find(r => r.id === idFinal);
+        if (itemExistente && itemExistente.cadastradoPor) {
+          usuarioOriginal = itemExistente.cadastradoPor;
+        }
+      }
+
+      if (!fotoBase64) {
+        alert('ATENÇÃO: O campo "FOTO DA TAG DE PATRIMONIO" é obrigatório!');
+        return;
+      }
+
+      const dadosItem = {
+        id: idFinal || Date.now(),
+        etiqueta: etiquetaDigitada,
+        nome: document.getElementById('nome').value.trim(),
+        serie: document.getElementById('serie').value.trim(),
+        categoria: document.getElementById('categoria').value,
+        alocadoPara: document.getElementById('alocadoPara').value.trim(),
+        empresa: document.getElementById('empresa').value,
+        local: document.getElementById('local').value,
+        statusOperacional: document.getElementById('statusOperacional').value,
+        situacao: document.getElementById('situacao').value,
+        fotoTag: fotoBase64,
+        cadastradoPor: usuarioOriginal,
+        dataRegistro: idFinal ? undefined : new Date().toLocaleDateString('pt-BR')
+      };
+
+      if (idFinal) {
+        registros = registros.map(item => item.id === idFinal ? { ...item, ...dadosItem } : item);
+        alert(`Patrimônio "${etiquetaDigitada}" ATUALIZADO com sucesso!`);
+      } else {
+        registros.unshift(dadosItem);
+        alert(`Patrimônio "${etiquetaDigitada}" CADASTRADO por [${usuarioOriginal}] com sucesso!`);
+      }
+
+      salvarLocalStorage();
+      resetarFormulario();
+      filtrar();
+      atualizarTotais();
+    });
+
+    function salvarLocalStorage() {
+      localStorage.setItem('patrimonio_db', JSON.stringify(registros));
+    }
+
+    // ----------------------------------------------------
+    // RENDERIZAR TABELA
+    // ----------------------------------------------------
+    function renderizarTabela(lista) {
+      listaVisivelAtual = lista;
+      tabelaCorpo.innerHTML = '';
+
+      if (lista.length === 0) {
+        estadoVazio.classList.remove('hidden');
+        sincronizarCheckTodos();
+        return;
+      }
+      estadoVazio.classList.add('hidden');
+
+      const ehAdmin = usuarioLogado && usuarioLogado.perfil === 'admin';
+
+      lista.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50/80 transition duration-150";
+
+        let badgeStatus = "bg-emerald-100 text-emerald-800 border-emerald-200";
+        if (item.statusOperacional === 'ESTOQUE') badgeStatus = "bg-indigo-100 text-indigo-800 border-indigo-200";
+        if (item.statusOperacional === 'MANUTENÇÃO') badgeStatus = "bg-amber-100 text-amber-800 border-amber-200";
+        if (item.statusOperacional === 'DEFEITO') badgeStatus = "bg-rose-100 text-rose-800 border-rose-200";
+
+        let badgeSituacao = "bg-slate-100 text-slate-700";
+        if (item.situacao === 'AVARIADO' || item.situacao === 'MAL FUNCIONAMENTO') {
+          badgeSituacao = "bg-rose-50 text-rose-700 font-semibold";
+        } else if (item.situacao === 'NOVO') {
+          badgeSituacao = "bg-emerald-50 text-emerald-700 font-semibold";
+        }
+
+        const isChecked = idsSelecionados.has(item.id) ? 'checked' : '';
+
+        const displayEtiqueta = item.etiqueta === 'SEM TAG'
+          ? `<span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">SEM TAG</span>`
+          : `<span class="font-mono font-bold text-slate-800 text-xs">${item.etiqueta}</span>`;
+
+        tr.innerHTML = `
+          ${ehAdmin ? `
+            <td class="py-2.5 px-2 text-center">
+              <input type="checkbox" class="checkItem rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer" 
+                value="${item.id}" ${isChecked} onchange="alternarSelecaoItem(${item.id}, this.checked)">
+            </td>
+          ` : `
+            <td class="hidden"></td>
+          `}
+          
+          <td class="py-2.5 px-2 text-center">
+            ${item.fotoTag ? `
+              <img src="${item.fotoTag}" onclick="abrirModalFoto('${item.etiqueta}', '${item.fotoTag}')"
+                class="w-9 h-9 object-cover rounded-lg border border-slate-200 mx-auto cursor-pointer hover:opacity-80 shadow-sm" title="Clique para ampliar">
+            ` : `
+              <span class="text-[10px] text-slate-300">Sem foto</span>
+            `}
+          </td>
+          <td class="py-2.5 px-2 whitespace-nowrap">${displayEtiqueta}</td>
+          <td class="py-2.5 px-2 font-semibold text-slate-800 text-xs">${item.nome}</td>
+          
+          <td class="py-2.5 px-2 text-center whitespace-nowrap">
+            <span class="font-mono text-[11px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 block truncate max-w-[105px] mx-auto" 
+              title="${item.serie}">
+              ${item.serie}
+            </span>
+          </td>
+          
+          <td class="py-2.5 px-2 text-slate-600 text-xs whitespace-nowrap">${item.categoria}</td>
+          <td class="py-2.5 px-2 font-medium text-slate-700 text-xs whitespace-nowrap">${item.alocadoPara}</td>
+          <td class="py-2.5 px-2 text-xs whitespace-nowrap">
+            <span class="font-medium text-slate-800 block">${item.empresa}</span>
+            <span class="text-[11px] text-slate-400 block">${item.local}</span>
+          </td>
+          <td class="py-2.5 px-2 text-center whitespace-nowrap">
+            <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold border ${badgeStatus}">
+              ${item.statusOperacional}
+            </span>
+          </td>
+          <td class="py-2.5 px-2 text-center whitespace-nowrap">
+            <span class="inline-block px-2 py-0.5 rounded text-[10px] border border-slate-200 ${badgeSituacao}">
+              ${item.situacao}
+            </span>
+          </td>
+          
+          <td class="py-2.5 px-2 text-center whitespace-nowrap">
+            <span class="inline-flex items-center gap-1 font-mono text-[11px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
+              <i class="ph ph-user text-[11px] text-blue-500"></i> ${item.cadastradoPor || 'ADM'}
+            </span>
+          </td>
+
+          <td class="py-2.5 px-2 text-right whitespace-nowrap space-x-1">
+            ${ehAdmin ? `
+              <button onclick="editarRegistro(${item.id})" class="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Editar">
+                <i class="ph ph-pencil-simple text-base"></i>
+              </button>
+              <button onclick="excluirRegistro(${item.id})" class="p-1 text-rose-600 hover:bg-rose-50 rounded" title="Excluir (Admin)">
+                <i class="ph ph-trash text-base"></i>
+              </button>
+            ` : `
+              <span class="text-[10px] text-slate-400 font-medium">Leitura</span>
+            `}
+          </td>
+        `;
+        tabelaCorpo.appendChild(tr);
+      });
+
+      sincronizarCheckTodos();
+      atualizarBarraMassa();
+    }
+
+    function atualizarTotais() {
+      document.getElementById('totalAtivos').textContent = registros.length;
+      document.getElementById('totalEmUso').textContent = registros.filter(r => r.statusOperacional === 'EM USO').length;
+      document.getElementById('totalEstoque').textContent = registros.filter(r => r.statusOperacional === 'ESTOQUE').length;
+      document.getElementById('totalProblemas').textContent = registros.filter(r => r.statusOperacional === 'MANUTENÇÃO' || r.statusOperacional === 'DEFEITO').length;
+    }
+
+    function editarRegistro(id) {
+      if (!usuarioLogado || usuarioLogado.perfil !== 'admin') return;
+
+      mudarAba('cadastros');
+      const item = registros.find(r => r.id === id);
+      if (!item) return;
+
+      document.getElementById('registroId').value = item.id;
+      document.getElementById('etiqueta').value = item.etiqueta;
+      document.getElementById('nome').value = item.nome;
+      document.getElementById('serie').value = item.serie;
+      document.getElementById('categoria').value = item.categoria;
+      document.getElementById('alocadoPara').value = item.alocadoPara;
+      document.getElementById('empresa').value = item.empresa;
+      document.getElementById('local').value = item.local;
+      document.getElementById('statusOperacional').value = item.statusOperacional;
+      document.getElementById('situacao').value = item.situacao;
+
+      if (item.fotoTag) definirFotoAtual(item.fotoTag);
+      else removerFoto();
+
+      document.getElementById('alertaDuplicado').classList.add('hidden');
+      document.getElementById('formTitulo').innerHTML = '<i class="ph ph-pencil text-blue-600 text-xl"></i> Editando Ativo ' + item.etiqueta;
+      document.getElementById('btnSalvar').textContent = 'Salvar Alterações';
+      document.getElementById('btnSalvar').className = "flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg text-sm transition shadow-sm";
+      document.getElementById('btnCancelar').classList.remove('hidden');
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function excluirRegistro(id) {
+      if (!usuarioLogado || usuarioLogado.perfil !== 'admin') {
+        alert('ACESSO NEGADO: Apenas Administradores podem excluir registros.');
+        return;
+      }
+
+      if (confirm('Tem certeza de que deseja excluir este equipamento?')) {
+        registros = registros.filter(item => item.id !== id);
+        idsSelecionados.delete(id);
+        salvarLocalStorage();
+        filtrar();
+        atualizarTotais();
+        atualizarDashboard();
+        atualizarBarraMassa();
+      }
+    }
+
+    function resetarFormulario() {
+      form.reset();
+      removerFoto();
+      document.getElementById('registroId').value = '';
+      document.getElementById('alertaDuplicado').classList.add('hidden');
+      document.getElementById('formTitulo').innerHTML = '<i class="ph ph-plus-circle text-blue-600 text-xl"></i> Novo Registro de Patrimônio';
+      document.getElementById('btnSalvar').textContent = 'Gravar Registro';
+      document.getElementById('btnSalvar').className = "flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg text-sm transition shadow-sm";
+      document.getElementById('btnCancelar').classList.add('hidden');
+      itemEncontradoRepetido = null;
+    }
+
+    function filtrar() {
+      const busca = document.getElementById('campoBusca').value.toLowerCase();
+      const empresaFiltro = document.getElementById('filtroEmpresa').value;
+
+      const resultado = registros.filter(item => {
+        const correspondeBusca = 
+          item.etiqueta.toLowerCase().includes(busca) ||
+          item.nome.toLowerCase().includes(busca) ||
+          item.serie.toLowerCase().includes(busca) ||
+          item.alocadoPara.toLowerCase().includes(busca) ||
+          item.local.toLowerCase().includes(busca) ||
+          (item.cadastradoPor && item.cadastradoPor.toLowerCase().includes(busca));
+
+        const correspondeEmpresa = empresaFiltro === "" || item.empresa === empresaFiltro;
+
+        return correspondeBusca && correspondeEmpresa;
+      });
+
+      renderizarTabela(resultado);
+    }
+
+    function mudarAba(aba) {
+      if (usuarioLogado && usuarioLogado.perfil === 'lojas' && aba === 'dashboard') {
+        return;
+      }
+
+      const abaCad = document.getElementById('abaCadastros');
+      const abaDash = document.getElementById('abaDashboard');
+      const btnCad = document.getElementById('btnAbaCadastros');
+      const btnDash = document.getElementById('btnAbaDashboard');
+
+      if (aba === 'cadastros') {
+        abaCad.classList.remove('hidden');
+        abaDash.classList.add('hidden');
+        btnCad.className = "flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-blue-600 text-white shadow transition";
+        btnDash.className = "flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-300 hover:text-white transition";
+      } else {
+        abaCad.classList.add('hidden');
+        abaDash.classList.remove('hidden');
+        btnDash.className = "flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-blue-600 text-white shadow transition";
+        btnCad.className = "flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-300 hover:text-white transition";
+        atualizarDashboard();
+      }
+    }
+
+    // ----------------------------------------------------
+    // DASHBOARD & LISTAGENS
+    // ----------------------------------------------------
+    function atualizarDashboard() {
+      if (usuarioLogado && usuarioLogado.perfil === 'lojas') return;
+      renderizarCaixaQuantidadeEquipamentos();
+      renderizarGraficos();
+      renderizarListagemPorEmpresa();
+    }
+
+    function getIconeCategoria(cat) {
+      cat = String(cat || '').toUpperCase();
+      if (cat.includes('NOTEBOOK')) return 'ph-laptop';
+      if (cat.includes('MONITOR')) return 'ph-monitor';
+      if (cat.includes('ALL IN ONE')) return 'ph-desktop-tower';
+      if (cat.includes('THINKCENTER')) return 'ph-cpu';
+      if (cat.includes('SMARTPHONE')) return 'ph-device-mobile';
+      if (cat.includes('NOBREAK')) return 'ph-battery-charging';
+      if (cat.includes('TABLET')) return 'ph-device-tablet';
+      if (cat.includes('HEADSET')) return 'ph-headphones';
+      if (cat.includes('TECLADO') || cat.includes('MOUSE')) return 'ph-keyboard';
+      if (cat.includes('IMPRESSORA')) return 'ph-printer';
+      return 'ph-hard-drives';
+    }
+
+    function renderizarCaixaQuantidadeEquipamentos() {
+      const container = document.getElementById('listaQtdEquipamentos');
+      const badgeTotal = document.getElementById('badgeTotalEquipamentosCard');
+      if (!container) return;
+
+      container.innerHTML = '';
+      const totalAtivos = registros.length;
+      badgeTotal.textContent = `${totalAtivos} item(ns)`;
+
+      if (totalAtivos === 0) {
+        container.innerHTML = `
+          <div class="h-full flex flex-col items-center justify-center text-slate-400 text-xs py-8">
+            <i class="ph ph-tray text-3xl mb-1 text-slate-300"></i>
+            <span>Nenhum equipamento cadastrado.</span>
+          </div>
+        `;
+        return;
+      }
+
+      const contagem = {};
+      registros.forEach(r => {
+        const cat = (r.categoria || 'OUTROS').toUpperCase();
+        contagem[cat] = (contagem[cat] || 0) + 1;
+      });
+
+      const ordenados = Object.keys(contagem)
+        .map(cat => ({ nome: cat, qtd: contagem[cat] }))
+        .sort((a, b) => b.qtd - a.qtd);
+
+      ordenados.forEach(item => {
+        const perc = ((item.qtd / totalAtivos) * 100).toFixed(0);
+        const iconClass = getIconeCategoria(item.nome);
+
+        const row = document.createElement('div');
+        row.className = "p-2 rounded-lg bg-slate-50 border border-slate-100 hover:bg-blue-50/50 transition";
+
+        row.innerHTML = `
+          <div class="flex items-center justify-between text-xs mb-1">
+            <div class="flex items-center gap-1.5 font-semibold text-slate-800 truncate mr-2">
+              <i class="ph ${iconClass} text-blue-600 text-sm flex-shrink-0"></i>
+              <span class="truncate" title="${item.nome}">${item.nome}</span>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <span class="font-bold text-slate-900 bg-white px-2 py-0.5 rounded-md border border-slate-200 text-[11px] shadow-2xs">
+                ${item.qtd} un.
+              </span>
+              <span class="text-[10px] text-slate-400 font-mono w-7 text-right">${perc}%</span>
+            </div>
+          </div>
+          <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+            <div class="bg-blue-600 h-1.5 rounded-full transition-all duration-300" style="width: ${perc}%"></div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function renderizarGraficos() {
+      if (chartCategoriaInst) chartCategoriaInst.destroy();
+      if (chartEmpresaInst) chartEmpresaInst.destroy();
+
+      const catCounts = {};
+      registros.forEach(r => { catCounts[r.categoria] = (catCounts[r.categoria] || 0) + 1; });
+
+      const coresCategorias = [
+        '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', 
+        '#64748b', '#06b6d4', '#84cc16', '#eab308', '#6366f1', '#a855f7'
+      ];
+
+      const ctxCat = document.getElementById('chartCategoria').getContext('2d');
+      chartCategoriaInst = new Chart(ctxCat, {
+        type: 'pie',
+        data: {
+          labels: Object.keys(catCounts).length ? Object.keys(catCounts) : ['Sem dados'],
+          datasets: [{
+            data: Object.keys(catCounts).length ? Object.values(catCounts) : [1],
+            backgroundColor: coresCategorias
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
+        }
+      });
+
+      const empCounts = {};
+      registros.forEach(r => { empCounts[r.empresa] = (empCounts[r.empresa] || 0) + 1; });
+
+      const ctxEmp = document.getElementById('chartEmpresa').getContext('2d');
+      chartEmpresaInst = new Chart(ctxEmp, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(empCounts).length ? Object.keys(empCounts) : ['Sem dados'],
+          datasets: [{
+            label: 'Total de Ativos',
+            data: Object.keys(empCounts).length ? Object.values(empCounts) : [0],
+            backgroundColor: '#0284c7'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } },
+            x: { ticks: { font: { size: 9 } } }
+          }
+        }
+      });
+    }
+
+    // ----------------------------------------------------
+    // LISTAGEM AGRUPADA POR EMPRESA (INICIA RECOLHIDA)
+    // ----------------------------------------------------
+    function renderizarListagemPorEmpresa() {
+      const container = document.getElementById('containerEmpresas');
+      const vazio = document.getElementById('estadoVazioEmpresas');
+      container.innerHTML = '';
+
+      if (registros.length === 0) {
+        vazio.classList.remove('hidden');
+        return;
+      }
+      vazio.classList.add('hidden');
+
+      const agrupado = registros.reduce((acc, item) => {
+        const emp = item.empresa || 'NÃO DEFINIDA';
+        if (!acc[emp]) acc[emp] = [];
+        acc[emp].push(item);
+        return acc;
+      }, {});
+
+      const empresasOrdenadas = Object.keys(agrupado).sort();
+
+      empresasOrdenadas.forEach((empresa, index) => {
+        const itensDaEmpresa = agrupado[empresa];
+        const card = document.createElement('div');
+        card.className = "border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50 shadow-sm";
+
+        card.innerHTML = `
+          <div onclick="toggleEmpresa('empresa-body-${index}', 'empresa-icon-${index}')" class="p-3.5 bg-white hover:bg-slate-50 cursor-pointer flex items-center justify-between transition border-b border-slate-100">
+            <div class="flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
+                <i class="ph ph-buildings"></i>
+              </span>
+              <div>
+                <h4 class="text-sm font-bold text-slate-800">${empresa}</h4>
+                <p class="text-[11px] text-slate-400">${itensDaEmpresa.length} equipamento(s) vinculado(s)</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-semibold border border-slate-200">
+                ${itensDaEmpresa.length} itens
+              </span>
+              <i class="ph ph-caret-right text-slate-400 text-sm transition-transform duration-200" id="empresa-icon-${index}"></i>
+            </div>
+          </div>
+
+          <div id="empresa-body-${index}" class="hidden overflow-x-auto bg-white">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-100/75 border-b border-slate-200 text-slate-500 font-semibold uppercase">
+                <tr>
+                  <th class="py-2.5 px-3">Etiqueta</th>
+                  <th class="py-2.5 px-3">Ativo</th>
+                  <th class="py-2.5 px-3 text-center">Nº Série</th>
+                  <th class="py-2.5 px-3">Categoria</th>
+                  <th class="py-2.5 px-3">Alocado Para</th>
+                  <th class="py-2.5 px-3">Setor / Local</th>
+                  <th class="py-2.5 px-3 text-center">Status</th>
+                  <th class="py-2.5 px-3 text-center">Cadastrado Por</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                ${itensDaEmpresa.map(item => `
+                  <tr class="hover:bg-slate-50">
+                    <td class="py-2 px-3 whitespace-nowrap">
+                      ${item.etiqueta === 'SEM TAG'
+                        ? '<span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">SEM TAG</span>'
+                        : `<span class="font-mono font-bold text-slate-800">${item.etiqueta}</span>`}
+                    </td>
+                    <td class="py-2 px-3 font-medium text-slate-800">${item.nome}</td>
+                    <td class="py-2 px-3 text-center">
+                      <span class="font-mono text-[11px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 block truncate max-w-[100px] mx-auto" title="${item.serie}">
+                        ${item.serie}
+                      </span>
+                    </td>
+                    <td class="py-2 px-3 text-slate-600">${item.categoria}</td>
+                    <td class="py-2 px-3 font-medium text-slate-700">${item.alocadoPara}</td>
+                    <td class="py-2 px-3 text-slate-700 font-medium">${item.local}</td>
+                    <td class="py-2 px-3 text-center">
+                      <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                        item.statusOperacional === 'EM USO' ? 'bg-emerald-100 text-emerald-800' :
+                        item.statusOperacional === 'ESTOQUE' ? 'bg-indigo-100 text-indigo-800' :
+                        item.statusOperacional === 'MANUTENÇÃO' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                      }">
+                        ${item.statusOperacional}
+                      </span>
+                    </td>
+                    <td class="py-2 px-3 text-center font-mono text-slate-500 text-[11px]">${item.cadastradoPor || 'ADM'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function toggleEmpresa(bodyId, iconId) {
+      const el = document.getElementById(bodyId);
+      const icon = document.getElementById(iconId);
+      if (el) {
+        const foiOcultado = el.classList.toggle('hidden');
+        if (icon) {
+          icon.classList.toggle('ph-caret-down', !foiOcultado);
+          icon.classList.toggle('ph-caret-right', foiOcultado);
+        }
+      }
+    }
+
+    function expandirTodasEmpresas(expandir) {
+      const bodies = document.querySelectorAll('[id^="empresa-body-"]');
+      bodies.forEach((b, index) => {
+        if (expandir) b.classList.remove('hidden');
+        else b.classList.add('hidden');
+
+        const icon = document.getElementById(`empresa-icon-${index}`);
+        if (icon) {
+          icon.classList.toggle('ph-caret-down', expandir);
+          icon.classList.toggle('ph-caret-right', !expandir);
+        }
+      });
+    }
+
+    // ----------------------------------------------------
+    // IMPORTAÇÃO E EXPORTAÇÃO
+    // ----------------------------------------------------
+    function toggleDropdownExportar() {
+      document.getElementById('dropdownExportar').classList.toggle('hidden');
+    }
+
+    window.addEventListener('click', (e) => {
+      const wrap = document.getElementById('dropdownExportarWrap');
+      if (wrap && !wrap.contains(e.target)) {
+        document.getElementById('dropdownExportar').classList.add('hidden');
+      }
+    });
+
+    function exportarXLSX() {
+      if (!usuarioLogado || usuarioLogado.perfil !== 'admin') return alert('Acesso negado.');
+      if (registros.length === 0) return alert('Não há dados cadastrados para exportar!');
+
+      const dadosXLSX = registros.map(item => ({
+        "Etiqueta": item.etiqueta,
+        "Nome do Ativo": item.nome,
+        "Número de Série": item.serie,
+        "Categoria": item.categoria,
+        "Alocado Para": item.alocadoPara,
+        "Empresa": item.empresa,
+        "Local / Setor": item.local,
+        "Status Operacional": item.statusOperacional,
+        "Situação Física": item.situacao,
+        "Cadastrado Por": item.cadastradoPor || 'ADM',
+        "Data de Cadastro": item.dataRegistro || ''
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(dadosXLSX);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Patrimônio");
+
+      const colunas = Object.keys(dadosXLSX[0]).map(col => ({
+        wch: Math.max(col.length, ...dadosXLSX.map(row => (row[col] ? String(row[col]).length : 0))) + 3
+      }));
+      worksheet['!cols'] = colunas;
+
+      XLSX.writeFile(workbook, `patrimonio_dennis_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+
+    function exportarCSV() {
+      if (!usuarioLogado || usuarioLogado.perfil !== 'admin') return;
+      if (registros.length === 0) return alert('Não há dados para exportar!');
+
+      let csv = "\uFEFFEtiqueta;Ativo;Número de Série;Categoria;Alocado Para;Empresa;Local;Status Operacional;Situação;Cadastrado Por\n";
+      registros.forEach(item => {
+        csv += `"${item.etiqueta}";"${item.nome}";"${item.serie}";"${item.categoria}";"${item.alocadoPara}";"${item.empresa}";"${item.local}";"${item.statusOperacional}";"${item.situacao}";"${item.cadastradoPor || 'ADM'}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `patrimonio_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function exportarBackupJSON() {
+      if (!usuarioLogado || usuarioLogado.perfil !== 'admin') return;
+      if (registros.length === 0) return alert('Não há dados para exportar!');
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(registros, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `backup_patrimonio_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function processarArquivoImportacao(event) {
+      if (!usuarioLogado || usuarioLogado.perfil !== 'admin') {
+        alert('Acesso negado: Perfil sem permissão para importar dados.');
+        event.target.value = '';
+        return;
+      }
+
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const fileName = file.name.toLowerCase();
+      const reader = new FileReader();
+
+      if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+        reader.onload = function(e) {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const primeiraAba = workbook.SheetNames[0];
+            const linhas = XLSX.utils.sheet_to_json(workbook.Sheets[primeiraAba]);
+
+            if (linhas.length === 0) return alert('A planilha importada está vazia.');
+
+            processarItensImportadosComAtualizacao(linhas.map(row => {
+              const etiquetaOriginal = String(row['Etiqueta'] || row['Etiqueta do Ativo'] || '').trim().toUpperCase();
+              const etiquetaDefinida = etiquetaOriginal !== '' ? etiquetaOriginal : 'SEM TAG';
+
+              return {
+                etiqueta: etiquetaDefinida,
+                nome: String(row['Nome do Ativo'] || row['Ativo'] || row['Nome'] || '').trim(),
+                serie: String(row['Número de Série'] || row['Nº Série'] || row['Serie'] || '').trim(),
+                categoria: String(row['Categoria'] || 'NOTEBOOK').trim().toUpperCase(),
+                alocadoPara: String(row['Alocado Para'] || row['Alocado para'] || '').trim(),
+                empresa: String(row['Empresa'] || 'TRUETEC-XXIII').trim().toUpperCase(),
+                local: String(row['Local / Setor'] || row['Local'] || 'RECEPÇÃO').trim().toUpperCase(),
+                statusOperacional: String(row['Status Operacional'] || row['Status'] || 'EM USO').trim().toUpperCase(),
+                situacao: String(row['Situação Física'] || row['Situação'] || 'USADO BOM').trim().toUpperCase(),
+                cadastradoPor: String(row['Cadastrado Por'] || usuarioLogado.usuario).trim()
+              };
+            }));
+          } catch (err) {
+            alert('Erro ao ler a planilha Excel.');
+          }
+          event.target.value = '';
+        };
+        reader.readAsArrayBuffer(file);
+      } else if (fileName.endsWith('.json')) {
+        reader.onload = function(e) {
+          try {
+            const dados = JSON.parse(e.target.result);
+            if (!Array.isArray(dados)) throw new Error("JSON inválido.");
+
+            processarItensImportadosComAtualizacao(dados.map(item => ({
+              ...item,
+              etiqueta: (item.etiqueta && String(item.etiqueta).trim() !== '') ? String(item.etiqueta).trim().toUpperCase() : 'SEM TAG'
+            })));
+          } catch (err) {
+            alert('Erro ao ler arquivo JSON.');
+          }
+          event.target.value = '';
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    function processarItensImportadosComAtualizacao(itensNovos) {
+      const permitirAtualizar = confirm(
+        `Planilha carregada com ${itensNovos.length} itens!\n\n` +
+        `Quando encontrar uma etiqueta REPETIDA:\n` +
+        `[OK] = ATUALIZAR os dados do patrimônio já existente\n` +
+        `[Cancelar] = IGNORAR os repetidos e cadastrar somente os novos`
+      );
+
+      let novosCadastrados = 0;
+      let atualizados = 0;
+      let ignorados = 0;
+      let semTagCount = 0;
+
+      itensNovos.forEach(item => {
+        let etiquetaNorm = String(item.etiqueta || '').trim().toUpperCase();
+        if (!etiquetaNorm) etiquetaNorm = 'SEM TAG';
+
+        if (etiquetaNorm === 'SEM TAG') {
+          registros.unshift({
+            ...item,
+            id: item.id || Date.now() + Math.floor(Math.random() * 1000000),
+            etiqueta: 'SEM TAG',
+            fotoTag: item.fotoTag || '',
+            cadastradoPor: item.cadastradoPor || usuarioLogado.usuario
+          });
+          novosCadastrados++;
+          semTagCount++;
+          return;
+        }
+
+        const indexExistente = registros.findIndex(r => r.etiqueta.toUpperCase() === etiquetaNorm);
+
+        if (indexExistente !== -1) {
+          if (permitirAtualizar) {
+            registros[indexExistente] = {
+              ...registros[indexExistente],
+              ...item,
+              etiqueta: etiquetaNorm,
+              fotoTag: item.fotoTag || registros[indexExistente].fotoTag || '',
+              cadastradoPor: registros[indexExistente].cadastradoPor || item.cadastradoPor || usuarioLogado.usuario
+            };
+            atualizados++;
+          } else {
+            ignorados++;
+          }
+        } else {
+          registros.unshift({
+            ...item,
+            id: item.id || Date.now() + Math.floor(Math.random() * 1000000),
+            etiqueta: etiquetaNorm,
+            fotoTag: item.fotoTag || '',
+            cadastradoPor: item.cadastradoPor || usuarioLogado.usuario
+          });
+          novosCadastrados++;
+        }
+      });
+
+      salvarLocalStorage();
+      filtrar();
+      atualizarTotais();
+      if (!document.getElementById('abaDashboard').classList.contains('hidden')) {
+        atualizarDashboard();
+      }
+
+      let mensagem = `Importação Concluída!\n\n` +
+        `✓ ${novosCadastrados} novos equipamentos cadastrados.\n`;
+      
+      if (semTagCount > 0) {
+        mensagem += `🏷️ (${semTagCount} equipamentos foram registrados como "SEM TAG")\n`;
+      }
+      if (permitirAtualizar) {
+        mensagem += `🔄 ${atualizados} patrimônios existentes foram ATUALIZADOS.\n`;
+      } else {
+        mensagem += `⚠ ${ignorados} equipamentos repetidos foram ignorados.\n`;
+      }
+
+      alert(mensagem);
+    }
+  </script>
+</body>
+</html>

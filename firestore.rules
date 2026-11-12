@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    function activeUser() {
+      return signedIn() && userDoc().data.active == true;
+    }
+    function globalSuperAdmin() {
+      return activeUser() && userDoc().data.role == "superadmin";
+    }
+    function companyMember(companyId) {
+      return activeUser() &&
+        exists(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)).data.active == true;
+    }
+    function memberRole(companyId) {
+      return get(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)).data.role;
+    }
+    function hasStore(companyId, storeId) {
+      return companyMember(companyId) &&
+        (memberRole(companyId) in ["company_admin"] ||
+         storeId in get(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)).data.storeIds);
+    }
+    function canRead(companyId, storeId) {
+      return globalSuperAdmin() ||
+        (hasStore(companyId, storeId) && memberRole(companyId) in ["company_admin", "usuario"]);
+    }
+    function canCreateAsset(companyId, storeId) {
+      return globalSuperAdmin() ||
+        (hasStore(companyId, storeId) && memberRole(companyId) in ["company_admin", "lojas"]);
+    }
+    function canManage(companyId) {
+      return globalSuperAdmin() ||
+        (companyMember(companyId) && memberRole(companyId) == "company_admin");
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || globalSuperAdmin());
+      allow create, update, delete: if globalSuperAdmin();
+    }
+
+    match /companies/{companyId} {
+      allow read: if globalSuperAdmin() || companyMember(companyId);
+      allow create, update, delete: if globalSuperAdmin();
+
+      match /members/{uid} {
+        allow read: if globalSuperAdmin() || (companyMember(companyId) && request.auth.uid == uid) || canManage(companyId);
+        allow create, update, delete: if canManage(companyId);
+      }
+
+      match /stores/{storeId} {
+        allow read: if globalSuperAdmin() || (companyMember(companyId) && hasStore(companyId, storeId));
+        allow create, update, delete: if canManage(companyId);
+
+        match /assets/{assetId} {
+          allow read: if canRead(companyId, storeId);
+          allow create: if canCreateAsset(companyId, storeId)
+            && request.resource.data.companyId == companyId
+            && request.resource.data.storeId == storeId
+            && request.resource.data.createdBy == request.auth.uid;
+          allow update, delete: if globalSuperAdmin() || canManage(companyId);
+          match /history/{historyId} {
+            allow read: if canRead(companyId, storeId);
+            allow create: if canManage(companyId);
+            allow update, delete: if false;
+          }
+        }
+      }
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
