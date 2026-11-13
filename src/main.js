@@ -111,10 +111,12 @@ function renderLogin(error = "") {
     "auth/operation-not-allowed": "O login por e-mail e senha não está habilitado."
   };
 
-  renderLogin(
-    mensagens[err.code] ||
-    `Falha na autenticação (${err.code || "erro desconhecido"}). Consulte o console.`
-  );
+    renderLogin(
+      mensagens[err.code] ||
+      `Falha na autenticação (${err.code || "erro desconhecido"}). Consulte o console.`
+    );
+    }
+  });
 }
 
 async function loadProfile(user) {
