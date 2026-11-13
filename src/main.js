@@ -97,10 +97,24 @@ function renderLogin(error = "") {
     button.innerHTML = 'Autenticando <span class="spinner"></span>';
     try {
       await signInWithEmailAndPassword(auth, data.get("email"), data.get("password"));
-    } catch (err) {
-      renderLogin("Não foi possível entrar. Confira seu e-mail e senha ou solicite acesso ao administrador.");
-    }
-  });
+   } catch (err) {
+  console.error("Erro no login WP Gestor:", err);
+
+  const mensagens = {
+    "auth/invalid-credential": "E-mail ou senha incorretos. Confira suas credenciais.",
+    "auth/user-not-found": "Este e-mail não está cadastrado no Firebase Authentication.",
+    "auth/wrong-password": "Senha incorreta.",
+    "auth/invalid-email": "O formato do e-mail é inválido.",
+    "auth/too-many-requests": "Muitas tentativas. Aguarde alguns minutos.",
+    "auth/network-request-failed": "Falha de conexão. Verifique sua internet.",
+    "auth/unauthorized-domain": "O domínio da Vercel não está autorizado no Firebase.",
+    "auth/operation-not-allowed": "O login por e-mail e senha não está habilitado."
+  };
+
+  renderLogin(
+    mensagens[err.code] ||
+    `Falha na autenticação (${err.code || "erro desconhecido"}). Consulte o console.`
+  );
 }
 
 async function loadProfile(user) {
