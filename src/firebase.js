@@ -1,23 +1,46 @@
-import { initializeApp } from "firebase/app";
+
+import { initializeApp, getApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
 
-// Preencha com os dados do seu projeto em Firebase Console > Configurações do projeto.
+// ============================================
+// WP GESTOR - CONFIGURAÇÃO FIREBASE
+// Projeto: wp-gestor
+// Região: São Paulo
+// ============================================
+
 const firebaseConfig = {
-  apiKey: "PREENCHER_API_KEY",
-  authDomain: "SEU-PROJETO.firebaseapp.com",
-  projectId: "SEU-PROJETO",
-  storageBucket: "SEU-PROJETO.firebasestorage.app",
-  messagingSenderId: "PREENCHER",
-  appId: "PREENCHER"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-export const firebaseConfigured = !Object.values(firebaseConfig).some(
-  value => String(value).includes("PREENCHER") || String(value).includes("SEU-PROJETO")
+// Verifica se todas as configurações foram preenchidas.
+const requiredConfig = Object.values(firebaseConfig);
+
+export const firebaseConfigured = requiredConfig.every(
+  (value) => typeof value === "string" && value.trim() !== ""
 );
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const functions = getFunctions(app, "southamerica-east1");
+// Inicializa o Firebase somente quando a configuração estiver completa.
+const app = firebaseConfigured
+  ? (getApps().length ? getApp() : initializeApp(firebaseConfig))
+  : null;
+
+// Serviços Firebase
+export const auth = app ? getAuth(app) : null;
+
+export const db = app ? getFirestore(app) : null;
+
+export const functions = app
+  ? getFunctions(app, "southamerica-east1")
+  : null;
+
+// Informações úteis para diagnóstico
+export const firebaseProjectId = firebaseConfig.projectId || null;
+
+export default app;
